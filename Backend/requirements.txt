@@ -1,0 +1,21 @@
+# Core API
+fastapi
+uvicorn[standard]
+pydantic
+requests
+
+# LLM & AI
+langgraph
+sentence-transformers
+chromadb
+
+# Security Testing
+giskard
+pyrit
+
+# Data & Utilities
+pandas
+faker
+
+# WebSocket support (included in uvicorn[standard])
+websockets
