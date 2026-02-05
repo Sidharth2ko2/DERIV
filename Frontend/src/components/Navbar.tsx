@@ -1,38 +1,65 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-    LayoutDashboard, Shield, FileText, Settings, Activity,
-    LogOut, Search, Menu, X, Moon, Sun
+    LayoutDashboard,
+    Shield,
+    FileText,
+    Settings,
+    Activity,
+    LogOut,
+    Moon,
+    Sun,
+    Search,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import GlobalSearch from './GlobalSearch';
 
+export const NAVBAR_HEIGHT = 72;
+
 const Navbar: React.FC = () => {
     const location = useLocation();
     const { logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+    const [scrolled, setScrolled] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const handleConfirmLogout = () => {
+        setShowLogoutModal(false);
+        logout();
+    };
+
+    const handleCancelLogout = () => {
+        setShowLogoutModal(false);
+    };
+
+    /* SCROLL EFFECT */
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    /* SEARCH SHORTCUT */
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 setIsSearchOpen(true);
             }
-            if (e.key === 'Escape') setIsSearchOpen(false);
+            if (e.key === 'Escape') {
+                setIsSearchOpen(false);
+            }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
 
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
     }, []);
 
     const menuItems = [
@@ -45,141 +72,192 @@ const Navbar: React.FC = () => {
 
     return (
         <>
-            <motion.header
-                initial={{ y: -100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed top-8 left-0 right-0 z-50 px-6 pointer-events-none"
+            {/* NAVBAR */}
+            <header
+                className="fixed top-0 left-0 right-0 z-50"
+                style={{
+                    height: NAVBAR_HEIGHT,
+                    backdropFilter: 'blur(18px)',
+                    WebkitBackdropFilter: 'blur(18px)',
+                    background:
+                        theme === 'dark'
+                            ? 'rgba(18,18,18,0.65)'
+                            : 'rgba(255,255,255,0.65)',
+                    borderBottom: scrolled
+                        ? '1px solid rgba(255,255,255,0.12)'
+                        : '1px solid transparent',
+                }}
             >
-                <div className="max-w-7xl mx-auto flex items-start justify-between relative">
-                    {/* Left: Branding */}
-                    <div className="pointer-events-auto">
-                        <Link to="/dashboard" className="group block">
-                            <div className={`liquid-glass rounded-2xl flex items-center gap-4 transition-all duration-300 premium-shadow
-                ${scrolled ? 'px-6 py-4 bg-[rgba(26,26,26,0.85)]' : 'px-7 py-5 bg-[rgba(26,26,26,0.7)]'}
-                border border-white/15 shadow-2xl
-              `}>
-                                <div className="w-14 h-14 bg-gradient-to-br from-[#FF444F] to-[#D32F2F] rounded-xl flex items-center justify-center shadow-lg shadow-red-500/30 transition-transform group-hover:scale-105">
-                                    <Shield className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="hidden lg:block pr-2">
-                                    <h1 className="text-2xl font-bold text-white tracking-tight">Deriv Sentinel</h1>
-                                    <p className="text-sm text-[#999999] uppercase tracking-wider font-medium mt-1">Security Center</p>
-                                </div>
-                            </div>
-                        </Link>
+                <div className="h-full max-w-[1600px] mx-auto px-6 flex items-center justify-between">
+                    {/* LEFT — BRAND */}
+                    <Link to="/dashboard" className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-[#FF444F] to-[#D32F2F] rounded-xl flex items-center justify-center shadow-lg">
+                            <Shield className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="hidden sm:block">
+                            <h1 className="text-lg font-semibold leading-tight">
+                                Deriv Sentinel
+                            </h1>
+                            <p className="text-xs opacity-60">
+                                Security Center
+                            </p>
+                        </div>
+                    </Link>
+
+                    {/* CENTER — NAV */}
+                    <nav className="hidden md:flex items-center gap-4">
+                        {menuItems.map((item) => {
+                            const Icon = item.icon;
+                            const active = location.pathname === item.path;
+
+                            return (
+                                <Link key={item.path} to={item.path}>
+                                    <div
+                                        className={`
+                                            nav-pill-custom
+                                            flex items-center gap-4
+                                            rounded-full
+                                            transition-all duration-200
+                                            ${active
+                                                ? 'bg-[#FF444F] text-white shadow-lg shadow-red-500/30'
+                                                : theme === 'dark'
+                                                    ? 'hover:bg-white/10'
+                                                    : 'hover:bg-black/5'
+                                            }
+                                        `}
+                                    >
+                                        <Icon className="w-5 h-5" />
+                                        <span className="text-[15px] font-medium tracking-wide">
+                                            {item.label}
+                                        </span>
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </nav>
+
+                    {/* RIGHT — ACTIONS */}
+                    <div className="flex items-center gap-3">
+                        {/* SEARCH */}
+                        <button
+                            onClick={() => setIsSearchOpen(true)}
+                            className={`
+                                w-11 h-11 rounded-xl
+                                flex items-center justify-center
+                                transition cursor-pointer
+                                ${theme === 'dark'
+                                    ? 'hover:bg-white/10'
+                                    : 'hover:bg-black/5'
+                                }
+                            `}
+                            aria-label="Search"
+                        >
+                            <Search className="w-5 h-5" />
+                        </button>
+
+                        {/* THEME */}
+                        <button
+                            onClick={toggleTheme}
+                            className={`
+                                w-11 h-11 rounded-xl
+                                flex items-center justify-center
+                                transition
+                                ${theme === 'dark'
+                                    ? 'hover:bg-white/10'
+                                    : 'hover:bg-black/5'
+                                }
+                            `}
+                        >
+                            {theme === 'dark' ? (
+                                <Moon className="w-5 h-5 text-[#FF444F]" />
+                            ) : (
+                                <Sun className="w-5 h-5 text-amber-400" />
+                            )}
+                        </button>
+
+                        {/* LOGOUT */}
+                        <button
+                            onClick={handleLogoutClick}
+                            className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-[#FF444F] hover:text-white transition"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
                     </div>
+                </div>
+            </header>
 
-                    {/* Center: Navigation – larger */}
-                    <div className="pointer-events-auto absolute left-1/2 -translate-x-1/2 hidden md:block">
-                        <div className={`liquid-glass rounded-full transition-all duration-300 premium-shadow border border-white/15 shadow-2xl
-              ${scrolled ? 'px-10 py-5 bg-[rgba(26,26,26,0.85)]' : 'px-12 py-6 bg-[rgba(26,26,26,0.7)]'}
-            `}>
-                            <div className="flex items-center gap-4">
-                                {menuItems.map((item) => {
-                                    const Icon = item.icon;
-                                    const isActive = location.pathname === item.path;
+            {/* SPACER */}
+            <div style={{ height: NAVBAR_HEIGHT }} />
 
-                                    return (
-                                        <Link key={item.path} to={item.path}>
-                                            <motion.div
-                                                whileHover={{ scale: 1.06 }}
-                                                whileTap={{ scale: 0.94 }}
-                                                className={`flex items-center gap-3 px-8 py-4 rounded-full text-base font-semibold transition-all
-                          ${isActive
-                                                        ? 'bg-[#FF444F] text-white shadow-lg shadow-red-600/30'
-                                                        : 'text-white hover:bg-white/15'
-                                                    }`}
-                                            >
-                                                <Icon className="w-6 h-6" />
-                                                <span>{item.label}</span>
-                                            </motion.div>
-                                        </Link>
-                                    );
-                                })}
+            {/* GLOBAL SEARCH */}
+            <GlobalSearch
+                isOpen={isSearchOpen}
+                onClose={() => setIsSearchOpen(false)}
+            />
+
+            {/* LOGOUT CONFIRMATION MODAL */}
+            {showLogoutModal && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center"
+                    style={{
+                        backdropFilter: 'blur(8px)',
+                        WebkitBackdropFilter: 'blur(8px)',
+                        backgroundColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.4)',
+                    }}
+                    onClick={handleCancelLogout}
+                >
+                    <div
+                        className={`
+                            relative p-8 rounded-2xl max-w-md w-[90%]
+                            ${theme === 'dark'
+                                ? 'bg-[#1A1A1A] border border-[#2A2A2A]'
+                                : 'bg-white border border-gray-200'
+                            }
+                            shadow-2xl
+                        `}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Icon */}
+                        <div className="flex justify-center mb-6">
+                            <div className="w-16 h-16 bg-gradient-to-br from-[#FF444F] to-[#D32F2F] rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/20">
+                                <LogOut className="w-8 h-8 text-white" />
                             </div>
                         </div>
-                    </div>
 
-                    {/* Right: Actions */}
-                    <div className="pointer-events-auto">
-                        <div className={`liquid-glass rounded-full flex items-center gap-4 transition-all duration-300 premium-shadow border border-white/15 shadow-2xl
-              ${scrolled ? 'p-3 bg-[rgba(26,26,26,0.85)]' : 'p-4 bg-[rgba(26,26,26,0.7)]'}
-            `}>
+                        {/* Title */}
+                        <h2 className={`text-xl font-bold text-center mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                            Confirm Logout
+                        </h2>
+
+                        {/* Message */}
+                        <p className={`text-center mb-8 ${theme === 'dark' ? 'text-[#C2C2C2]' : 'text-gray-600'}`}>
+                            Are you sure you want to logout from Deriv Sentinel?
+                        </p>
+
+                        {/* Buttons */}
+                        <div className="flex gap-4">
                             <button
-                                onClick={() => setIsSearchOpen(true)}
-                                className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/15 rounded-full text-white transition-all group"
-                                title="Search (⌘K)"
+                                onClick={handleCancelLogout}
+                                className={`
+                                    flex-1 py-3 px-6 rounded-xl font-medium transition-all duration-200
+                                    ${theme === 'dark'
+                                        ? 'bg-[#2A2A2A] hover:bg-[#3A3A3A] text-white'
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                                    }
+                                `}
                             >
-                                <Search className="w-6 h-6 group-hover:scale-110" />
+                                Cancel
                             </button>
-
-                            <div className="w-px h-10 bg-white/15 mx-2"></div>
-
                             <button
-                                onClick={toggleTheme}
-                                className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-white/15 rounded-full text-white transition-all group"
-                                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                                onClick={handleConfirmLogout}
+                                className="flex-1 py-3 px-6 rounded-xl font-medium bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/30 transition-all duration-200"
                             >
-                                {theme === 'dark' ? (
-                                    <Moon className="w-7 h-7 group-hover:-rotate-12 text-[#FF444F]" />
-                                ) : (
-                                    <Sun className="w-7 h-7 group-hover:rotate-12 text-amber-400" />
-                                )}
-                            </button>
-
-                            <button
-                                onClick={logout}
-                                className="w-14 h-14 flex items-center justify-center bg-white/5 hover:bg-[#FF444F]/90 rounded-full text-white transition-all hover:shadow-lg hover:shadow-red-500/30"
-                                title="Logout"
-                            >
-                                <LogOut className="w-6 h-6" />
-                            </button>
-
-                            <button
-                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                                className="md:hidden w-14 h-14 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white"
-                            >
-                                {mobileMenuOpen ? <X className="w-7 h-7" /> : <Menu className="w-7 h-7" />}
+                                Yes, Logout
                             </button>
                         </div>
                     </div>
                 </div>
-            </motion.header>
-
-            <AnimatePresence>
-                {mobileMenuOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="fixed top-28 left-6 right-6 z-40 md:hidden"
-                    >
-                        <div className="liquid-glass rounded-2xl p-5 space-y-3 premium-shadow bg-[#1A1A1A]/95 border border-white/10">
-                            {menuItems.map((item) => {
-                                const Icon = item.icon;
-                                const isActive = location.pathname === item.path;
-                                return (
-                                    <Link
-                                        key={item.path}
-                                        to={item.path}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        <div className={`flex items-center gap-4 px-5 py-4 rounded-xl text-base font-medium
-                      ${isActive ? 'bg-[#FF444F] text-white shadow-md shadow-red-500/20' : 'text-white hover:bg-white/10'}`}
-                                        >
-                                            <Icon className="w-6 h-6" />
-                                            <span>{item.label}</span>
-                                        </div>
-                                    </Link>
-                                );
-                            })}
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            <GlobalSearch isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+            )}
         </>
     );
 };

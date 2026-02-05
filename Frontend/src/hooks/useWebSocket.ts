@@ -8,11 +8,17 @@ interface UseWebSocketReturn {
     disconnect: () => void;
 }
 
-export const useWebSocket = (url: string = 'ws://localhost:8000/ws/attacks'): UseWebSocketReturn => {
+import { useSettings } from '../context/SettingsContext';
+
+export const useWebSocket = (overrideUrl?: string): UseWebSocketReturn => {
+    const { settings } = useSettings();
+
+    // Derive WS URL from settings if not provided
+    const url = overrideUrl || settings.bastionEndpoint.replace(/^http/, 'ws') + '/ws/attacks';
     const [isConnected, setIsConnected] = useState(false);
     const [attacks, setAttacks] = useState<Attack[]>([]);
     const wsRef = useRef<WebSocket | null>(null);
-    const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const reconnectTimeoutRef = useRef<number | null>(null);
 
     const connect = useCallback(() => {
         if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -78,7 +84,8 @@ export const useWebSocket = (url: string = 'ws://localhost:8000/ws/attacks'): Us
         return () => {
             disconnect();
         };
-    }, [connect, disconnect]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return { isConnected, attacks, connect, disconnect };
 };

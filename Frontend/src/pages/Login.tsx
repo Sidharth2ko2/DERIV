@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Lock, Mail, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Login: React.FC = () => {
     const [email, setEmail] = useState('');
@@ -18,7 +19,7 @@ const Login: React.FC = () => {
             await login(email, password);
             navigate('/dashboard');
         } catch (error) {
-            console.error('Login failed:', error);
+            toast.error('Username or password didn\'t match');
         } finally {
             setLoading(false);
         }
@@ -26,6 +27,23 @@ const Login: React.FC = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0E0E0E] via-[#1A0A0A] to-[#0E0E0E] relative overflow-hidden">
+            {/* Toast container for login errors */}
+            <Toaster
+                position="top-center"
+                toastOptions={{
+                    style: {
+                        background: '#1A1A1A',
+                        color: '#FFFFFF',
+                        border: '1px solid #FF444F',
+                        borderRadius: '12px',
+                        padding: '16px',
+                    },
+                    error: {
+                        iconTheme: { primary: '#FF444F', secondary: '#FFFFFF' },
+                    },
+                    duration: 4000,
+                }}
+            />
             {/* Animated background elements */}
             <div className="absolute inset-0 overflow-hidden">
                 <motion.div
@@ -72,8 +90,8 @@ const Login: React.FC = () => {
                     >
                         <Shield className="w-8 h-8 text-white" />
                     </motion.div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Deriv Sentinel</h1>
-                    <p className="text-[#C2C2C2]">AI Security Command Center</p>
+                    <h1 className="text-3xl font-bold mb-2" style={{ color: '#FFFFFF' }}>Deriv Sentinel</h1>
+                    <p className="mb-0" style={{ color: '#E0E0E0' }}>AI Security Command Center</p>
                 </div>
 
                 {/* Login Card */}
@@ -86,16 +104,17 @@ const Login: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Email Input */}
                         <div>
-                            <label className="block text-sm font-medium text-[#C2C2C2] mb-2">
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#333333' }}>
                                 Email Address
                             </label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#999999]" />
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#666666' }} />
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#FF444F] transition-colors"
+                                    className="w-full py-3 border rounded-lg focus:outline-none focus:border-[#FF444F] transition-colors"
+                                    style={{ paddingLeft: '48px', paddingRight: '16px', backgroundColor: '#FFFFFF', borderColor: '#E0E0E0', color: '#333333' }}
                                     placeholder="analyst@deriv.com"
                                     required
                                 />
@@ -104,16 +123,17 @@ const Login: React.FC = () => {
 
                         {/* Password Input */}
                         <div>
-                            <label className="block text-sm font-medium text-[#C2C2C2] mb-2">
+                            <label className="block text-sm font-medium mb-2" style={{ color: '#333333' }}>
                                 Password
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#999999]" />
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: '#666666' }} />
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#FF444F] transition-colors"
+                                    className="w-full py-3 border rounded-lg focus:outline-none focus:border-[#FF444F] transition-colors"
+                                    style={{ paddingLeft: '48px', paddingRight: '16px', backgroundColor: '#FFFFFF', borderColor: '#E0E0E0', color: '#333333' }}
                                     placeholder="••••••••"
                                     required
                                 />
@@ -121,24 +141,26 @@ const Login: React.FC = () => {
                         </div>
 
                         {/* Submit Button */}
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            type="submit"
-                            disabled={loading}
-                            className="w-full py-3 bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white font-semibold rounded-lg shadow-lg shadow-[#FF444F]/30 hover:shadow-[#FF444F]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {loading ? 'Authenticating...' : 'Sign In'}
-                        </motion.button>
+                        <div className="pt-4">
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                type="submit"
+                                disabled={loading}
+                                className="w-full py-3 bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white font-semibold rounded-lg shadow-lg shadow-[#FF444F]/30 hover:shadow-[#FF444F]/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? 'Authenticating...' : 'Sign In'}
+                            </motion.button>
+                        </div>
                     </form>
 
                     <div className="mt-6 text-center text-sm text-[#999999]">
-                        Demo credentials: any email/password
+                        Demo credentials: analyst@deriv.com / 12345678
                     </div>
                 </motion.div>
 
                 {/* Footer */}
-                <div className="mt-8 text-center text-sm text-[#666666]">
+                <div className="mt-8 text-center text-sm" style={{ color: '#B0B0B0' }}>
                     <p>© 2026 Deriv Sentinel. All rights reserved.</p>
                 </div>
             </motion.div>

@@ -34,6 +34,10 @@ npm run dev
 
 The dashboard will be available at http://localhost:5173
 
+**Demo Credentials:**
+- Email: `analyst@deriv.com`
+- Password: `12345678`
+
 ### 3. Run Ollama (Required for attacks)
 
 ```bash

@@ -136,11 +136,11 @@ const Guardrails: React.FC = () => {
     }
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="px-8 pb-8 pt-4 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Vaccine Guardrails</h1>
-                    <p className="text-[#C2C2C2]">Self-healing security rules injected from attacks</p>
+                    <h1 className="text-3xl font-bold text-white mb-2">Deriv Shield - Active Defense</h1>
+                    <p className="text-[#C2C2C2]">Live vaccine injection powered by Deriv Shield™</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button
@@ -173,9 +173,10 @@ const Guardrails: React.FC = () => {
             {/* Raw Vaccine File Viewer */}
             {showRawFile && (
                 <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                     className="glass rounded-xl p-6"
                 >
                     <div className="flex items-center justify-between mb-4">
@@ -191,11 +192,11 @@ const Guardrails: React.FC = () => {
                             Reset All Vaccines
                         </button>
                     </div>
-                    <div className="bg-[#0A0A0A] rounded-lg p-4 border border-[#2A2A2A] max-h-80 overflow-y-auto">
+                    <div className="vaccine-content-bar rounded-lg p-4 max-h-80 overflow-y-auto">
                         {vaccineContent ? (
-                            <pre className="text-[#C2C2C2] text-sm font-mono whitespace-pre-wrap">{vaccineContent}</pre>
+                            <pre className="vaccine-content-text text-sm font-mono whitespace-pre-wrap">{vaccineContent}</pre>
                         ) : (
-                            <p className="text-[#666666] text-sm italic">No vaccines injected yet. Run attacks to generate vaccines.</p>
+                            <p className="vaccine-content-text text-sm italic">No vaccines injected yet. Run attacks to generate vaccines.</p>
                         )}
                     </div>
                 </motion.div>
@@ -208,7 +209,7 @@ const Guardrails: React.FC = () => {
                     <p className="text-2xl font-bold text-white">{guardrails.filter(g => g.id.startsWith('base-')).length}</p>
                 </div>
                 <div className="glass rounded-xl p-4">
-                    <p className="text-[#999999] text-sm">Injected Vaccines</p>
+                    <p className="text-[#999999] text-sm">Deriv Shield Vaccines</p>
                     <p className="text-2xl font-bold text-[#FF444F]">{guardrails.filter(g => g.id.startsWith('vaccine-')).length}</p>
                 </div>
                 <div className="glass rounded-xl p-4">
@@ -241,8 +242,8 @@ const Guardrails: React.FC = () => {
                                         <div className="flex items-center gap-2">
                                             <h3 className="text-lg font-semibold text-white">{guardrail.rule}</h3>
                                             {guardrail.id.startsWith('vaccine-') && (
-                                                <span className="px-2 py-0.5 bg-[#FF444F]/20 text-[#FF444F] text-xs rounded-full font-medium">
-                                                    💉 VACCINE
+                                                <span className="px-3 py-1 bg-[#FF444F]/20 text-[#FF444F] text-xs rounded-full font-medium">
+                                                    🛡️ SHIELD VACCINE
                                                 </span>
                                             )}
                                         </div>

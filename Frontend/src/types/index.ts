@@ -15,6 +15,12 @@ export interface Attack {
     response: string;
     success: boolean;
     severity: 'low' | 'medium' | 'high' | 'critical';
+    audit?: {
+        violation: string;
+        risk_score: number;
+        category: string;
+        reason: string;
+    };
 }
 
 export interface AuditResult {

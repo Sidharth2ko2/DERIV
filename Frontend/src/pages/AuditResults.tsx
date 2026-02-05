@@ -92,7 +92,7 @@ const AuditResults: React.FC = () => {
     }
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="px-8 pb-8 pt-4 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Audit Results</h1>
@@ -143,7 +143,7 @@ const AuditResults: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            className="glass rounded-xl p-6 card-hover"
+                            className="glass rounded-xl p-10 card-hover"
                         >
                             <div className="flex items-start justify-between mb-6">
                                 <div className="flex items-center gap-4">
@@ -164,7 +164,7 @@ const AuditResults: React.FC = () => {
                                 </button>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-6 mb-6">
+                            <div className="grid grid-cols-3 gap-6">
                                 <div className="text-center p-4 bg-[#1A1A1A] rounded-lg">
                                     <p className="text-3xl font-bold text-white mb-1">{audit.totalTests}</p>
                                     <p className="text-sm text-[#999999]">Total Tests</p>
@@ -181,8 +181,8 @@ const AuditResults: React.FC = () => {
 
                             {/* Violations */}
                             {audit.violations.length > 0 && (
-                                <div className="pt-6 border-t border-[#2A2A2A]">
-                                    <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+                                <div className="mt-6 space-y-4">
+                                    <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                                         <AlertTriangle className="w-5 h-5 text-[#FF444F]" />
                                         Vulnerabilities Detected & Healed
                                     </h4>
@@ -221,7 +221,7 @@ const AuditResults: React.FC = () => {
                                 </div>
                             )}
 
-                            <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                            <div className="mt-6">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[#C2C2C2]">Defense Rate</span>
                                     <span className="text-white font-semibold">

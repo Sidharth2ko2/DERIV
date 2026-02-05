@@ -5,24 +5,9 @@ import { Search, Filter, AlertCircle, CheckCircle, XCircle, Download, Loader2, R
 import { exportAttacksToCSV } from '../utils/export';
 import { useWebSocket } from '../hooks/useWebSocket';
 import api from '../services/api';
+import type { Attack } from '../types';
 
-interface Attack {
-    id: string;
-    timestamp: string;
-    category: string;
-    objective: string;
-    persona: string;
-    prompt: string;
-    response: string;
-    success: boolean;
-    severity: 'critical' | 'high' | 'medium' | 'low';
-    audit?: {
-        violation: string;
-        risk_score: number;
-        category: string;
-        reason: string;
-    };
-}
+
 
 const AttackMonitor: React.FC = () => {
     const { attacks: liveAttacks } = useWebSocket();
@@ -136,7 +121,7 @@ const AttackMonitor: React.FC = () => {
     }
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="px-8 pb-8 pt-4 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -184,8 +169,8 @@ const AttackMonitor: React.FC = () => {
                         onClick={handleRunCustomAttack}
                         disabled={isRunningAttack}
                         className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all ${isRunningAttack
-                                ? 'bg-[#2A2A2A] text-[#666666] cursor-not-allowed'
-                                : 'bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25'
+                            ? 'bg-[#2A2A2A] text-[#666666] cursor-not-allowed'
+                            : 'bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25'
                             }`}
                     >
                         {isRunningAttack ? (
@@ -213,13 +198,14 @@ const AttackMonitor: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     {/* Search */}
                     <div className="lg:col-span-2 relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#999999]" />
+                        <Search className="absolute top-1/2 -translate-y-1/2 w-5 h-5 text-[#999999]" style={{ left: '16px' }} />
                         <input
                             type="text"
                             placeholder="Search attacks..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#FF444F] transition-colors"
+                            className="w-full py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#FF444F] transition-colors"
+                            style={{ paddingLeft: '48px', paddingRight: '16px' }}
                         />
                     </div>
 
@@ -311,12 +297,12 @@ const AttackMonitor: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {attack.success ? (
-                                        <span className="flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">
+                                        <span className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">
                                             <XCircle className="w-4 h-4" />
                                             Passed → Healed 💉
                                         </span>
                                     ) : (
-                                        <span className="flex items-center gap-2 px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">
+                                        <span className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">
                                             <CheckCircle className="w-4 h-4" />
                                             Blocked
                                         </span>

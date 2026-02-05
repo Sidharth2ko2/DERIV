@@ -1,25 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
-import { Save, Server, Cpu, Bell, CheckCircle, XCircle, Loader2, Zap, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Save, Server, Cpu, Bell, CheckCircle, XCircle, Loader2, Zap, RefreshCw, X } from 'lucide-react';
 import api from '../services/api';
 
-const Settings: React.FC = () => {
-    const [settings, setSettings] = useState(() => {
-        const saved = localStorage.getItem('sentinel-settings');
-        if (saved) {
-            return JSON.parse(saved);
-        }
-        return {
-            bastionEndpoint: 'http://localhost:8000',
-            ollamaEndpoint: 'http://localhost:11434',
-            bastionModel: 'deepseek-r1:8b',
-            attackerModel: 'foundation-sec-4b:latest',
-            shieldgemmaModel: 'shieldgemma:2b',
-            alertThreshold: 'high',
-            autoHeal: true,
-        };
-    });
+import { useSettings, type Settings } from '../context/SettingsContext';
+
+// Custom notification component
+interface NotificationProps {
+    message: string;
+    type: 'success' | 'error';
+    onClose: () => void;
+}
+
+const Notification: React.FC<NotificationProps> = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: 100, scale: 0.9 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 100, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className={`fixed top-6 right-6 z-[9999] flex items-center gap-3 px-5 py-4 rounded-xl shadow-2xl ${type === 'success'
+                ? 'bg-[#1A1A1A] border border-green-500'
+                : 'bg-[#1A1A1A] border border-red-500'
+                }`}
+            style={{ boxShadow: '0 20px 60px rgba(0, 0, 0, 0.6)' }}
+        >
+            {type === 'success' ? (
+                <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0" />
+            ) : (
+                <XCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
+            )}
+            <span className="text-white font-medium text-base">{message}</span>
+            <button
+                onClick={onClose}
+                className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors"
+            >
+                <X className="w-4 h-4 text-[#999999]" />
+            </button>
+        </motion.div>
+    );
+};
+
+const SettingsPage: React.FC = () => {
+    const { settings: globalSettings, saveSettings } = useSettings();
+    const [localSettings, setLocalSettings] = useState<Settings>(globalSettings);
+    const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+    // Sync local settings if global settings change (e.g. from another tab or reset)
+    useEffect(() => {
+        setLocalSettings(globalSettings);
+    }, [globalSettings]);
 
     const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
     const [isTestingConnection, setIsTestingConnection] = useState(false);
@@ -42,20 +79,24 @@ const Settings: React.FC = () => {
     };
 
     const handleSave = () => {
-        localStorage.setItem('sentinel-settings', JSON.stringify(settings));
-        toast.success('Settings saved successfully!');
+        try {
+            saveSettings(localSettings);
+            setNotification({ message: 'Settings saved successfully!', type: 'success' });
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            setNotification({ message: 'Failed to save settings', type: 'error' });
+        }
     };
 
     const handleTestConnection = async () => {
         setIsTestingConnection(true);
-        toast.loading('Testing connection...', { id: 'test-conn' });
 
         try {
             const health = await api.health();
-            toast.success(`API is online! Status: ${health.status}`, { id: 'test-conn' });
+            setNotification({ message: `API is online! Status: ${health.status}`, type: 'success' });
             setApiStatus('online');
         } catch (error) {
-            toast.error('Failed to connect to API. Is the server running?', { id: 'test-conn' });
+            setNotification({ message: 'Failed to connect to API. Is the server running?', type: 'error' });
             setApiStatus('offline');
         } finally {
             setIsTestingConnection(false);
@@ -63,7 +104,18 @@ const Settings: React.FC = () => {
     };
 
     return (
-        <div className="p-8 space-y-6">
+        <div className="px-8 pb-8 pt-4 space-y-6">
+            {/* Custom Notification */}
+            <AnimatePresence>
+                {notification && (
+                    <Notification
+                        message={notification.message}
+                        type={notification.type}
+                        onClose={() => setNotification(null)}
+                    />
+                )}
+            </AnimatePresence>
+
             <div>
                 <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
                 <p className="text-[#C2C2C2]">Configure system parameters</p>
@@ -74,8 +126,8 @@ const Settings: React.FC = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`glass rounded-xl p-4 flex items-center justify-between ${apiStatus === 'online' ? 'border-l-4 border-l-green-500' :
-                        apiStatus === 'offline' ? 'border-l-4 border-l-red-500' :
-                            'border-l-4 border-l-yellow-500'
+                    apiStatus === 'offline' ? 'border-l-4 border-l-red-500' :
+                        'border-l-4 border-l-yellow-500'
                     }`}
             >
                 <div className="flex items-center gap-3">
@@ -114,7 +166,7 @@ const Settings: React.FC = () => {
                 className="glass rounded-xl p-6 space-y-6"
             >
                 {/* API Endpoints */}
-                <div className="pt-6 border-t border-[#2A2A2A]">
+                <div className="pt-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Server className="w-5 h-5 text-[#FF444F]" />
                         <h2 className="text-xl font-semibold text-white">API Endpoints</h2>
@@ -126,8 +178,8 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.bastionEndpoint}
-                                onChange={(e) => setSettings({ ...settings, bastionEndpoint: e.target.value })}
+                                value={localSettings.bastionEndpoint}
+                                onChange={(e) => setLocalSettings({ ...localSettings, bastionEndpoint: e.target.value })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             />
                         </div>
@@ -137,8 +189,8 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.ollamaEndpoint}
-                                onChange={(e) => setSettings({ ...settings, ollamaEndpoint: e.target.value })}
+                                value={localSettings.ollamaEndpoint}
+                                onChange={(e) => setLocalSettings({ ...localSettings, ollamaEndpoint: e.target.value })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             />
                         </div>
@@ -146,7 +198,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 {/* Model Configuration */}
-                <div className="pt-6 border-t border-[#2A2A2A]">
+                <div className="pt-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Cpu className="w-5 h-5 text-[#FF444F]" />
                         <h2 className="text-xl font-semibold text-white">Model Configuration</h2>
@@ -158,8 +210,8 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.bastionModel}
-                                onChange={(e) => setSettings({ ...settings, bastionModel: e.target.value })}
+                                value={localSettings.bastionModel}
+                                onChange={(e) => setLocalSettings({ ...localSettings, bastionModel: e.target.value })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             />
                             <p className="text-xs text-[#666666] mt-1">The defended trading assistant</p>
@@ -170,8 +222,8 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.attackerModel}
-                                onChange={(e) => setSettings({ ...settings, attackerModel: e.target.value })}
+                                value={localSettings.attackerModel}
+                                onChange={(e) => setLocalSettings({ ...localSettings, attackerModel: e.target.value })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             />
                             <p className="text-xs text-[#666666] mt-1">Red team model (Foundation-Sec)</p>
@@ -182,8 +234,8 @@ const Settings: React.FC = () => {
                             </label>
                             <input
                                 type="text"
-                                value={settings.shieldgemmaModel}
-                                onChange={(e) => setSettings({ ...settings, shieldgemmaModel: e.target.value })}
+                                value={localSettings.shieldgemmaModel}
+                                onChange={(e) => setLocalSettings({ ...localSettings, shieldgemmaModel: e.target.value })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             />
                             <p className="text-xs text-[#666666] mt-1">Policy auditor model</p>
@@ -192,7 +244,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 {/* Self-Healing Settings */}
-                <div className="pt-6 border-t border-[#2A2A2A]">
+                <div className="pt-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Zap className="w-5 h-5 text-[#FF444F]" />
                         <h2 className="text-xl font-semibold text-white">Self-Healing Engine</h2>
@@ -204,12 +256,12 @@ const Settings: React.FC = () => {
                                 <p className="text-sm text-[#999999]">Automatically inject vaccine guardrails when attacks succeed</p>
                             </div>
                             <button
-                                onClick={() => setSettings({ ...settings, autoHeal: !settings.autoHeal })}
-                                className={`w-14 h-8 rounded-full transition-colors ${settings.autoHeal ? 'bg-[#FF444F]' : 'bg-[#2A2A2A]'
+                                onClick={() => setLocalSettings({ ...localSettings, autoHeal: !localSettings.autoHeal })}
+                                className={`w-14 h-8 rounded-full transition-colors ${localSettings.autoHeal ? 'bg-[#FF444F]' : 'bg-[#2A2A2A]'
                                     }`}
                             >
                                 <div
-                                    className={`w-6 h-6 bg-white rounded-full transition-transform ${settings.autoHeal ? 'translate-x-7' : 'translate-x-1'
+                                    className={`w-6 h-6 bg-white rounded-full transition-transform ${localSettings.autoHeal ? 'translate-x-7' : 'translate-x-1'
                                         }`}
                                 />
                             </button>
@@ -218,7 +270,7 @@ const Settings: React.FC = () => {
                 </div>
 
                 {/* Alert Settings */}
-                <div className="pt-6 border-t border-[#2A2A2A]">
+                <div className="pt-4">
                     <div className="flex items-center gap-2 mb-4">
                         <Bell className="w-5 h-5 text-[#FF444F]" />
                         <h2 className="text-xl font-semibold text-white">Alert Settings</h2>
@@ -229,8 +281,8 @@ const Settings: React.FC = () => {
                                 Alert Threshold
                             </label>
                             <select
-                                value={settings.alertThreshold}
-                                onChange={(e) => setSettings({ ...settings, alertThreshold: e.target.value })}
+                                value={localSettings.alertThreshold}
+                                onChange={(e) => setLocalSettings({ ...localSettings, alertThreshold: e.target.value as any })}
                                 className="w-full px-4 py-3 bg-[#151515] border border-[#2A2A2A] rounded-lg text-white focus:outline-none focus:border-[#FF444F] transition-colors"
                             >
                                 <option value="low">Low (All attacks)</option>
@@ -243,10 +295,10 @@ const Settings: React.FC = () => {
                 </div>
 
                 {/* Save Button */}
-                <div className="pt-6 border-t border-[#2A2A2A]">
+                <div className="flex justify-center" style={{ marginTop: '48px' }}>
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white font-semibold rounded-lg shadow-lg shadow-[#FF444F]/30 hover:shadow-[#FF444F]/50 transition-all"
+                        className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white font-semibold rounded-lg shadow-lg shadow-[#FF444F]/30 hover:shadow-[#FF444F]/50 transition-all"
                     >
                         <Save className="w-5 h-5" />
                         Save Settings
@@ -257,4 +309,4 @@ const Settings: React.FC = () => {
     );
 };
 
-export default Settings;
+export default SettingsPage;

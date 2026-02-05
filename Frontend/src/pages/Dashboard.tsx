@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import {
     Shield,
     Activity,
@@ -10,7 +10,6 @@ import {
     Clock,
     Wifi,
     WifiOff,
-    Play,
     Loader2,
     Zap
 } from 'lucide-react';
@@ -104,7 +103,7 @@ const Dashboard: React.FC = () => {
                             <p className="text-white font-semibold">{latestAttack.category}</p>
                             <p className="text-[#C2C2C2] text-sm">{latestAttack.objective}</p>
                             <p className="text-[#999999] text-xs mt-1">
-                                {latestAttack.success ? 'Attack Successful ⚠️ → Vaccine Injected 💉' : 'Attack Blocked ✓'}
+                                {latestAttack.success ? 'Attack Successful ⚠️ → Deriv Shield Deployed Vaccine 💉' : 'Attack Blocked ✓'}
                             </p>
                         </div>
                     </div>
@@ -132,7 +131,7 @@ const Dashboard: React.FC = () => {
             // Refresh stats
             await fetchStats();
 
-            setCampaignProgress(`✅ Campaign complete! ${result.summary.failed} vulnerabilities found and healed.`);
+            setCampaignProgress(`✅ Campaign complete! ${result.summary.failed} vulnerabilities healed by Deriv Shield.`);
 
         } catch (error) {
             toast.error('Campaign failed. Is the API server running?', { id: 'campaign' });
@@ -161,7 +160,7 @@ const Dashboard: React.FC = () => {
             change: '+12%',
         },
         {
-            title: 'Blocked Attacks',
+            title: 'Interceptions by Shield',
             value: stats.blockedAttacks.toLocaleString(),
             icon: Shield,
             color: 'from-green-500 to-green-600',
@@ -210,8 +209,7 @@ const Dashboard: React.FC = () => {
     }
 
     return (
-        <div className="p-8 space-y-8">
-            <Toaster position="top-right" />
+        <div className="px-8 pb-8 pt-4 space-y-8">
 
             {/* Header with Connection Status */}
             <div className="flex items-center justify-between">
@@ -226,9 +224,9 @@ const Dashboard: React.FC = () => {
                         whileTap={{ scale: 0.98 }}
                         onClick={handleRunCampaign}
                         disabled={isRunningCampaign}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all ${isRunningCampaign
-                                ? 'bg-[#2A2A2A] text-[#666666] cursor-not-allowed'
-                                : 'bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25'
+                        className={`btn-premium flex items-center gap-4 rounded-xl font-semibold transition-all ${isRunningCampaign
+                            ? 'bg-[#2A2A2A] text-[#666666] cursor-not-allowed'
+                            : 'bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25'
                             }`}
                     >
                         {isRunningCampaign ? (
@@ -391,7 +389,7 @@ const Dashboard: React.FC = () => {
                                 className="flex items-center justify-between p-4 bg-[#1A1A1A] rounded-lg border border-[#2A2A2A] hover:border-[#FF444F]/30 transition-colors"
                             >
                                 <div className="flex items-center gap-4 flex-1">
-                                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${getSeverityColor(attack.severity || 'medium')}`}>
+                                    <div className={`w-20 text-center px-2 py-1.5 rounded-full text-xs font-medium ${getSeverityColor(attack.severity || 'medium')}`}>
                                         {(attack.severity || 'medium').toUpperCase()}
                                     </div>
                                     <div>
@@ -404,12 +402,12 @@ const Dashboard: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {(attack.blocked !== undefined ? attack.blocked : !attack.success) ? (
-                                        <span className="px-3 py-1 bg-green-500/10 text-green-500 rounded-full text-xs font-medium">
+                                        <span className="px-4 py-2 bg-green-500/10 text-green-500 rounded-full text-xs font-medium">
                                             Blocked
                                         </span>
                                     ) : (
-                                        <span className="px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-xs font-medium flex items-center gap-1">
-                                            Passed → Healed 💉
+                                        <span className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-medium flex items-center gap-1">
+                                            Passed → Shield Active 🛡️
                                         </span>
                                     )}
                                 </div>

@@ -21,8 +21,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, []);
 
-    const login = async (email: string, _password: string) => {
-        // Mock login - replace with actual API call
+    const login = async (email: string, password: string) => {
+        // Validate credentials
+        const validEmail = 'analyst@deriv.com';
+        const validPassword = '12345678';
+
+        if (email !== validEmail || password !== validPassword) {
+            throw new Error('Invalid credentials. Please use the demo credentials.');
+        }
+
+        // Create user after successful validation
         const mockUser: User = {
             id: '1',
             email,

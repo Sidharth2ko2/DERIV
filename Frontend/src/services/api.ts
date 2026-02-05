@@ -5,7 +5,13 @@
  * Connects to the backend API server
  */
 
-const API_BASE = 'http://localhost:8000';
+import { getStoredSettings } from '../context/SettingsContext';
+
+const getBaseUrl = () => {
+    const settings = getStoredSettings();
+    // Ensure no trailing slash
+    return settings.bastionEndpoint.replace(/\/$/, '');
+};
 
 // Types
 export interface SystemStats {
@@ -78,21 +84,21 @@ export interface CampaignResult {
 export const api = {
     // Health check
     async health(): Promise<{ status: string; timestamp: string }> {
-        const res = await fetch(`${API_BASE}/api/health`);
+        const res = await fetch(`${getBaseUrl()}/api/health`);
         if (!res.ok) throw new Error('API health check failed');
         return res.json();
     },
 
     // Get system stats
     async getStats(): Promise<SystemStats> {
-        const res = await fetch(`${API_BASE}/api/stats`);
+        const res = await fetch(`${getBaseUrl()}/api/stats`);
         if (!res.ok) throw new Error('Failed to fetch stats');
         return res.json();
     },
 
     // Get attacks
     async getAttacks(): Promise<Attack[]> {
-        const res = await fetch(`${API_BASE}/api/attacks`);
+        const res = await fetch(`${getBaseUrl()}/api/attacks`);
         if (!res.ok) throw new Error('Failed to fetch attacks');
         return res.json();
     },
@@ -104,7 +110,7 @@ export const api = {
         persona: string;
         prompt: string;
     }): Promise<Attack> {
-        const res = await fetch(`${API_BASE}/api/attacks`, {
+        const res = await fetch(`${getBaseUrl()}/api/attacks`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(attack),
@@ -115,7 +121,7 @@ export const api = {
 
     // Run full campaign
     async runCampaign(attackIds?: number[]): Promise<CampaignResult> {
-        const res = await fetch(`${API_BASE}/api/run-campaign`, {
+        const res = await fetch(`${getBaseUrl()}/api/run-campaign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ attack_ids: attackIds }),
@@ -126,28 +132,28 @@ export const api = {
 
     // Get audits
     async getAudits(): Promise<Audit[]> {
-        const res = await fetch(`${API_BASE}/api/audits`);
+        const res = await fetch(`${getBaseUrl()}/api/audits`);
         if (!res.ok) throw new Error('Failed to fetch audits');
         return res.json();
     },
 
     // Get guardrails
     async getGuardrails(): Promise<Guardrail[]> {
-        const res = await fetch(`${API_BASE}/api/guardrails`);
+        const res = await fetch(`${getBaseUrl()}/api/guardrails`);
         if (!res.ok) throw new Error('Failed to fetch guardrails');
         return res.json();
     },
 
     // Get vaccine file contents
     async getVaccineFile(): Promise<{ content: string; exists: boolean }> {
-        const res = await fetch(`${API_BASE}/api/vaccine-file`);
+        const res = await fetch(`${getBaseUrl()}/api/vaccine-file`);
         if (!res.ok) throw new Error('Failed to fetch vaccine file');
         return res.json();
     },
 
     // Reset guardrails (for demo)
     async resetGuardrails(): Promise<{ status: string; message: string }> {
-        const res = await fetch(`${API_BASE}/api/guardrails/reset`, {
+        const res = await fetch(`${getBaseUrl()}/api/guardrails/reset`, {
             method: 'POST',
         });
         if (!res.ok) throw new Error('Failed to reset guardrails');
@@ -156,14 +162,14 @@ export const api = {
 
     // Get heal log
     async getHealLog(): Promise<any[]> {
-        const res = await fetch(`${API_BASE}/api/heal-log`);
+        const res = await fetch(`${getBaseUrl()}/api/heal-log`);
         if (!res.ok) throw new Error('Failed to fetch heal log');
         return res.json();
     },
 
     // Query Bastion directly
     async queryBastion(prompt: string): Promise<{ response: string }> {
-        const res = await fetch(`${API_BASE}/api/generate`, {
+        const res = await fetch(`${getBaseUrl()}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
