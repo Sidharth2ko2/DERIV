@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import {
@@ -11,11 +12,16 @@ import {
     Wifi,
     WifiOff,
     Loader2,
-    Zap
+    Zap,
+    RotateCcw,
+    Square
 } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { useWebSocket } from '../hooks/useWebSocket';
 import api from '../services/api';
+import type { Attack } from '../services/api';
+import { useSettings } from '../context/SettingsContext';
+import { useCampaign } from '../context/CampaignContext';
 
 interface SystemStats {
     totalAttacks: number;
@@ -30,6 +36,7 @@ interface SystemStats {
 }
 
 const Dashboard: React.FC = () => {
+    const navigate = useNavigate();
     const { isConnected, attacks: liveAttacks } = useWebSocket();
     const [stats, setStats] = useState<SystemStats>({
         totalAttacks: 0,
@@ -40,9 +47,10 @@ const Dashboard: React.FC = () => {
         systemHealth: 'checking...',
     });
     const [isLoading, setIsLoading] = useState(true);
-    const [isRunningCampaign, setIsRunningCampaign] = useState(false);
-    const [campaignProgress, setCampaignProgress] = useState<string>('');
     const [apiConnected, setApiConnected] = useState(false);
+    const [pendingHeals, setPendingHeals] = useState<Attack[]>([]);
+    const { settings, updateSetting } = useSettings();
+    const { isRunningCampaign, campaignProgress, handleRunCampaign, handleStopCampaign, clearProgress } = useCampaign();
 
     // Fetch stats from API
     const fetchStats = useCallback(async () => {
@@ -77,12 +85,30 @@ const Dashboard: React.FC = () => {
         }
     }, [liveAttacks]);
 
+    // Fetch pending heals
+    const fetchPendingHeals = useCallback(async () => {
+        try {
+            const data = await api.getPendingHeals();
+            setPendingHeals(data);
+        } catch (error) {
+            console.error('Failed to fetch pending heals:', error);
+        }
+    }, []);
+
+    // Sync auto-heal state to backend on mount
+    useEffect(() => {
+        api.setAutoHeal(settings.autoHeal).catch(() => {});
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
     useEffect(() => {
         fetchStats();
-        // Refresh stats every 10 seconds
-        const interval = setInterval(fetchStats, 10000);
+        fetchPendingHeals();
+        const interval = setInterval(() => {
+            fetchStats();
+            fetchPendingHeals();
+        }, 10000);
         return () => clearInterval(interval);
-    }, [fetchStats]);
+    }, [fetchStats, fetchPendingHeals]);
 
     // Show toast for new attacks
     useEffect(() => {
@@ -103,7 +129,11 @@ const Dashboard: React.FC = () => {
                             <p className="text-white font-semibold">{latestAttack.category}</p>
                             <p className="text-[#C2C2C2] text-sm">{latestAttack.objective}</p>
                             <p className="text-[#999999] text-xs mt-1">
-                                {latestAttack.success ? 'Attack Successful ⚠️ → Deriv Shield Deployed Vaccine 💉' : 'Attack Blocked ✓'}
+                                {latestAttack.success
+                                    ? (latestAttack.heal_status === 'approved'
+                                        ? 'Breached → Auto-Healed'
+                                        : 'Breached → Awaiting approval')
+                                    : 'Blocked'}
                             </p>
                         </div>
                     </div>
@@ -112,32 +142,26 @@ const Dashboard: React.FC = () => {
         }
     }, [liveAttacks]);
 
-    // Run Campaign Handler
-    const handleRunCampaign = async () => {
-        setIsRunningCampaign(true);
-        setCampaignProgress('Initializing red team campaign...');
-
-        toast.loading('Starting Red Team Campaign...', { id: 'campaign' });
-
+    // Reset All Handler
+    const handleResetAll = async () => {
         try {
-            setCampaignProgress('Running attacks against Bastion...');
-            const result = await api.runCampaign();
-
-            toast.success(
-                `Campaign complete! ${result.summary.passed}/${result.summary.totalTests} attacks blocked`,
-                { id: 'campaign', duration: 5000 }
-            );
-
-            // Refresh stats
+            await api.resetAll();
+            toast.success('All data cleared — ready for fresh demo');
+            clearProgress();
+            setPendingHeals([]);
+            setStats({
+                totalAttacks: 0,
+                blockedAttacks: 0,
+                activeGuardrails: 0,
+                successRate: 100,
+                lastAudit: 'Never',
+                systemHealth: 'healthy',
+            });
+            // Re-fetch to confirm
             await fetchStats();
-
-            setCampaignProgress(`✅ Campaign complete! ${result.summary.failed} vulnerabilities healed by Deriv Shield.`);
-
-        } catch (error) {
-            toast.error('Campaign failed. Is the API server running?', { id: 'campaign' });
-            setCampaignProgress('❌ Campaign failed. Make sure api_server.py is running.');
-        } finally {
-            setIsRunningCampaign(false);
+            await fetchPendingHeals();
+        } catch {
+            toast.error('Failed to reset. Is the API running?');
         }
     };
 
@@ -218,28 +242,76 @@ const Dashboard: React.FC = () => {
                     <p className="text-[#C2C2C2]">Real-time monitoring and threat analysis</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    {/* Run Campaign Button */}
+                    {/* Run / Stop Campaign Button */}
+                    {isRunningCampaign ? (
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleStopCampaign}
+                            className="btn-premium flex items-center gap-3 rounded-xl font-semibold bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-lg hover:shadow-orange-500/25 transition-all"
+                        >
+                            <Square className="w-5 h-5" />
+                            Stop Campaign
+                        </motion.button>
+                    ) : (
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleRunCampaign}
+                            className="btn-premium flex items-center gap-4 rounded-xl font-semibold bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25 transition-all"
+                        >
+                            <Zap className="w-5 h-5" />
+                            Run Red Team
+                        </motion.button>
+                    )}
+
+                    {/* Auto-Heal Toggle */}
                     <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleRunCampaign}
-                        disabled={isRunningCampaign}
-                        className={`btn-premium flex items-center gap-4 rounded-xl font-semibold transition-all ${isRunningCampaign
-                            ? 'bg-[#2A2A2A] text-[#666666] cursor-not-allowed'
-                            : 'bg-gradient-to-r from-[#FF444F] to-[#D32F2F] text-white hover:shadow-lg hover:shadow-red-500/25'
+                        onClick={async () => {
+                            const newVal = !settings.autoHeal;
+                            try {
+                                const res = await api.setAutoHeal(newVal);
+                                updateSetting('autoHeal', newVal);
+                                if (res.approved > 0) {
+                                    toast.success(`Auto-healed ${res.approved} pending attacks`);
+                                } else {
+                                    toast.success(newVal ? 'Auto-Heal ON' : 'Manual Heal mode');
+                                }
+                                await fetchPendingHeals();
+                                await fetchStats();
+                            } catch {
+                                toast.error('Failed to toggle auto-heal');
+                            }
+                        }}
+                        className={`flex items-center gap-3 px-6 py-3 rounded-xl font-semibold transition-all ${settings.autoHeal
+                                ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                                : 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-white'
                             }`}
                     >
-                        {isRunningCampaign ? (
+                        {settings.autoHeal ? (
                             <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                Running Campaign...
+                                <Zap className="w-5 h-5" />
+                                Auto-Heal: ON
                             </>
                         ) : (
                             <>
-                                <Zap className="w-5 h-5" />
-                                Run Red Team
+                                <AlertTriangle className="w-5 h-5" />
+                                Manual Heal
                             </>
                         )}
+                    </motion.button>
+
+                    {/* Reset All Button */}
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleResetAll}
+                        className="flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-all"
+                    >
+                        <RotateCcw className="w-4 h-4" />
+                        Reset
                     </motion.button>
 
                     {/* Connection Status */}
@@ -315,6 +387,70 @@ const Dashboard: React.FC = () => {
                 })}
             </div>
 
+            {/* Pending Heals Section — only in Manual Heal mode */}
+            {!settings.autoHeal && pendingHeals.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="glass rounded-xl p-6"
+                >
+                    <div className="flex items-center gap-2 mb-6">
+                        <AlertTriangle className="w-6 h-6 text-yellow-500" />
+                        <h2 className="text-xl font-bold text-white">Pending Heals ({pendingHeals.length})</h2>
+                        <span className="text-sm text-[#999999]">-- Attacks awaiting approval</span>
+                    </div>
+                    <div className="space-y-4">
+                        {pendingHeals.map((attack) => (
+                            <div
+                                key={attack.id}
+                                className="p-4 bg-[#1A1A1A] rounded-lg border border-yellow-500/30"
+                            >
+                                <div className="flex items-start justify-between mb-3">
+                                    <div>
+                                        <h3 className="text-white font-semibold">{attack.category}</h3>
+                                        <p className="text-[#999999] text-sm mt-1">{attack.objective}</p>
+                                    </div>
+                                    <span className="px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-xs font-medium">
+                                        Breached
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.approveHeal(attack.id);
+                                                toast.success('Vaccine injected!');
+                                                await fetchPendingHeals();
+                                                await fetchStats();
+                                            } catch (error) {
+                                                toast.error('Failed to approve heal');
+                                            }
+                                        }}
+                                        className="flex-1 px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-500 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Approve & Inject Vaccine
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                await api.rejectHeal(attack.id);
+                                                toast.success('Heal rejected');
+                                                await fetchPendingHeals();
+                                            } catch (error) {
+                                                toast.error('Failed to reject heal');
+                                            }
+                                        }}
+                                        className="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Reject (No Vaccine)
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </motion.div>
+            )}
+
             {/* Attack Trends Chart */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -377,7 +513,7 @@ const Dashboard: React.FC = () => {
                 >
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-xl font-bold text-white">Recent Attacks</h2>
-                        <button className="text-[#FF444F] hover:text-[#FF6B6B] text-sm font-medium">
+                        <button onClick={() => navigate('/attacks')} className="text-[#FF444F] hover:text-[#FF6B6B] text-sm font-medium">
                             View All →
                         </button>
                     </div>
@@ -405,9 +541,17 @@ const Dashboard: React.FC = () => {
                                         <span className="px-4 py-2 bg-green-500/10 text-green-500 rounded-full text-xs font-medium">
                                             Blocked
                                         </span>
+                                    ) : attack.heal_status === 'approved' ? (
+                                        <span className="px-4 py-2 bg-blue-500/10 text-blue-400 rounded-full text-xs font-medium">
+                                            Healed
+                                        </span>
+                                    ) : attack.heal_status === 'pending' ? (
+                                        <span className="px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-full text-xs font-medium">
+                                            Pending
+                                        </span>
                                     ) : (
-                                        <span className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-medium flex items-center gap-1">
-                                            Passed → Shield Active 🛡️
+                                        <span className="px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-xs font-medium">
+                                            Breached
                                         </span>
                                     )}
                                 </div>

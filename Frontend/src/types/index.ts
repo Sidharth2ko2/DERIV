@@ -15,6 +15,7 @@ export interface Attack {
     response: string;
     success: boolean;
     severity: 'low' | 'medium' | 'high' | 'critical';
+    heal_status?: 'pending' | 'approved' | 'rejected';
     audit?: {
         violation: string;
         risk_score: number;

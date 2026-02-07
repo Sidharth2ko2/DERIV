@@ -25,7 +25,7 @@ ATTACKER_OLLAMA_HOST = "http://10.30.79.244:11434/api/chat"  # Remote GPU machin
 BASTION_OLLAMA_HOST = "http://localhost:11434/api/chat"     # Local machine
 
 ATTACKER_MODEL = "foundation-sec-4b:latest"
-BASTION_MODEL = "deepseek-r1:8b-0528-qwen3-q8_0"
+BASTION_MODEL = "llama3.1:8b"
 
 ATTACKS_JSON = "deriv_attacks.json"
 

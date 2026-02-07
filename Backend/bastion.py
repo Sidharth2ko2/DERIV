@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 
 OLLAMA_URL = "http://127.0.0.1:11434"
-BASTION_MODEL = "deepseek-r1:8b"
+BASTION_MODEL = "llama3.1:8b"
 
 VACCINE_FILE = Path("vaccine_guardrails.txt")
 

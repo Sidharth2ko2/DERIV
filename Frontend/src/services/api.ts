@@ -36,6 +36,7 @@ export interface Attack {
     response: string;
     success: boolean;
     severity: 'critical' | 'high' | 'medium' | 'low';
+    heal_status?: 'pending' | 'approved' | 'rejected';
     audit?: {
         violation: string;
         risk_score: number;
@@ -78,6 +79,8 @@ export interface CampaignResult {
     campaign_id: string;
     summary: Audit;
     attacks: Attack[];
+    skipped?: { id: number; category: string; reason: string }[];
+    message?: string;
 }
 
 // API Functions
@@ -109,6 +112,7 @@ export const api = {
         objective: string;
         persona: string;
         prompt: string;
+        auto_heal?: boolean;
     }): Promise<Attack> {
         const res = await fetch(`${getBaseUrl()}/api/attacks`, {
             method: 'POST',
@@ -120,13 +124,29 @@ export const api = {
     },
 
     // Run full campaign
-    async runCampaign(attackIds?: number[]): Promise<CampaignResult> {
+    async runCampaign(attackIds?: number[], autoHeal?: boolean): Promise<CampaignResult> {
         const res = await fetch(`${getBaseUrl()}/api/run-campaign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ attack_ids: attackIds }),
+            body: JSON.stringify({ attack_ids: attackIds, auto_heal: autoHeal ?? false }),
         });
         if (!res.ok) throw new Error('Failed to run campaign');
+        return res.json();
+    },
+
+    // Stop running campaign
+    async stopCampaign(): Promise<{ status: string; message: string }> {
+        const res = await fetch(`${getBaseUrl()}/api/campaign/stop`, {
+            method: 'POST',
+        });
+        if (!res.ok) throw new Error('Failed to stop campaign');
+        return res.json();
+    },
+
+    // Check campaign status
+    async getCampaignStatus(): Promise<{ running: boolean }> {
+        const res = await fetch(`${getBaseUrl()}/api/campaign/status`);
+        if (!res.ok) throw new Error('Failed to get campaign status');
         return res.json();
     },
 
@@ -160,10 +180,58 @@ export const api = {
         return res.json();
     },
 
+    // Full demo reset
+    async resetAll(): Promise<{ status: string; message: string }> {
+        const res = await fetch(`${getBaseUrl()}/api/reset-all`, {
+            method: 'POST',
+        });
+        if (!res.ok) throw new Error('Failed to reset');
+        return res.json();
+    },
+
     // Get heal log
     async getHealLog(): Promise<any[]> {
         const res = await fetch(`${getBaseUrl()}/api/heal-log`);
         if (!res.ok) throw new Error('Failed to fetch heal log');
+        return res.json();
+    },
+
+    // Human-in-the-Loop Heal Endpoints
+    async approveHeal(attackId: string): Promise<{ status: string; message: string; heal?: any }> {
+        const res = await fetch(`${getBaseUrl()}/api/heal/approve/${attackId}`, {
+            method: 'POST',
+        });
+        if (!res.ok) throw new Error('Failed to approve heal');
+        return res.json();
+    },
+
+    async rejectHeal(attackId: string): Promise<{ status: string; message: string }> {
+        const res = await fetch(`${getBaseUrl()}/api/heal/reject/${attackId}`, {
+            method: 'POST',
+        });
+        if (!res.ok) throw new Error('Failed to reject heal');
+        return res.json();
+    },
+
+    async setAutoHeal(enabled: boolean): Promise<{ enabled: boolean; approved: number }> {
+        const res = await fetch(`${getBaseUrl()}/api/auto-heal`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+        if (!res.ok) throw new Error('Failed to set auto-heal');
+        return res.json();
+    },
+
+    async getAutoHeal(): Promise<{ enabled: boolean }> {
+        const res = await fetch(`${getBaseUrl()}/api/auto-heal`);
+        if (!res.ok) throw new Error('Failed to get auto-heal');
+        return res.json();
+    },
+
+    async getPendingHeals(): Promise<Attack[]> {
+        const res = await fetch(`${getBaseUrl()}/api/heal/pending`);
+        if (!res.ok) throw new Error('Failed to fetch pending heals');
         return res.json();
     },
 
@@ -173,7 +241,7 @@ export const api = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'deepseek-r1:8b',
+                model: 'llama3.1:8b',
                 prompt,
                 stream: false,
             }),

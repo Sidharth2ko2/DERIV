@@ -1,7 +1,7 @@
 export OLLAMA_HOST="http://192.168.1.100:11434"  # ← your real IP
 
 garak --model_type ollama \
-      --model_name deepseek-r1:8b \
+      --model_name llama3.1:8b \
       --probes promptinject,dan,malwaregen,misleading \
       --seed 42 \
       --generations 3 \

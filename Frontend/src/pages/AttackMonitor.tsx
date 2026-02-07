@@ -6,11 +6,13 @@ import { exportAttacksToCSV } from '../utils/export';
 import { useWebSocket } from '../hooks/useWebSocket';
 import api from '../services/api';
 import type { Attack } from '../types';
+import { useSettings } from '../context/SettingsContext';
 
 
 
 const AttackMonitor: React.FC = () => {
     const { attacks: liveAttacks } = useWebSocket();
+    const { settings } = useSettings();
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSeverity, setFilterSeverity] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -83,12 +85,17 @@ const AttackMonitor: React.FC = () => {
                 objective: 'Custom attack from UI',
                 persona: 'Security Tester',
                 prompt: customPrompt,
+                auto_heal: settings.autoHeal,
             });
 
             if (result.success) {
-                toast.error('Attack succeeded! Vulnerability detected → Vaccine injected 💉', { id: 'custom-attack' });
+                if (settings.autoHeal) {
+                    toast.error('Attack breached! Vaccine auto-injected', { id: 'custom-attack' });
+                } else {
+                    toast.error('Attack breached! Awaiting approval to heal', { id: 'custom-attack' });
+                }
             } else {
-                toast.success('Attack blocked! Bastion is secure ✓', { id: 'custom-attack' });
+                toast.success('Attack blocked! Bastion is secure', { id: 'custom-attack' });
             }
 
             await fetchAttacks();
@@ -297,10 +304,62 @@ const AttackMonitor: React.FC = () => {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     {attack.success ? (
-                                        <span className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">
-                                            <XCircle className="w-4 h-4" />
-                                            Passed → Healed 💉
-                                        </span>
+                                        <>
+                                            {attack.heal_status === 'pending' && (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="flex items-center gap-2 px-3 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">
+                                                        <XCircle className="w-4 h-4" />
+                                                        Breached
+                                                    </span>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await api.approveHeal(attack.id);
+                                                                toast.success('Vaccine injected!');
+                                                                await fetchAttacks();
+                                                            } catch (error) {
+                                                                toast.error('Failed to approve heal');
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-500 rounded-lg text-sm font-medium transition-colors"
+                                                    >
+                                                        Approve
+                                                    </button>
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                await api.rejectHeal(attack.id);
+                                                                toast.success('Heal rejected');
+                                                                await fetchAttacks();
+                                                            } catch (error) {
+                                                                toast.error('Failed to reject heal');
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-500 rounded-lg text-sm font-medium transition-colors"
+                                                    >
+                                                        Reject
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {attack.heal_status === 'approved' && (
+                                                <span className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Healed
+                                                </span>
+                                            )}
+                                            {attack.heal_status === 'rejected' && (
+                                                <span className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-full text-sm font-medium">
+                                                    <AlertCircle className="w-4 h-4" />
+                                                    Rejected
+                                                </span>
+                                            )}
+                                            {!attack.heal_status && (
+                                                <span className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-full text-sm font-medium">
+                                                    <XCircle className="w-4 h-4" />
+                                                    Breached
+                                                </span>
+                                            )}
+                                        </>
                                     ) : (
                                         <span className="flex items-center gap-2 px-4 py-2 bg-green-500/10 text-green-500 rounded-full text-sm font-medium">
                                             <CheckCircle className="w-4 h-4" />
@@ -327,7 +386,7 @@ const AttackMonitor: React.FC = () => {
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-[#FF444F] font-semibold text-sm">ShieldGemma Audit</span>
                                         <span className={`text-sm font-medium ${attack.audit.violation === 'Yes' ? 'text-red-500' : 'text-green-500'}`}>
-                                            Risk Score: {attack.audit.risk_score}/10
+                                            {attack.audit.violation === 'Yes' ? 'Violation Detected' : 'Safe'}
                                         </span>
                                     </div>
                                     <p className="text-[#C2C2C2] text-sm">{attack.audit.reason}</p>

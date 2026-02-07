@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 BASTION_API = "http://localhost:8000"      # FastAPI Bastion
 OLLAMA_API = "http://localhost:11434"      # Raw Ollama (ShieldGemma)
 
-BASTION_MODEL = "deepseek-r1:8b"
+BASTION_MODEL = "llama3.1:8b"
 SHIELDGEMMA_MODEL = "shieldgemma:2b"
 
 fake = Faker()

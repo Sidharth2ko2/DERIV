@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { CampaignProvider } from './context/CampaignContext';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import Navbar from './components/Navbar';
@@ -21,6 +22,7 @@ function App() {
   return (
     <ThemeProvider>
       <SettingsProvider>
+        <CampaignProvider>
         <AuthProvider>
           <BrowserRouter>
             {/* Toasts */}
@@ -99,6 +101,7 @@ function App() {
             </Routes>
           </BrowserRouter>
         </AuthProvider>
+        </CampaignProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

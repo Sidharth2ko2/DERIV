@@ -2,7 +2,7 @@
 import requests
 
 BASTION_API = "http://127.0.0.1:8000"
-BASTION_MODEL = "deepseek-r1:8b"
+BASTION_MODEL = "llama3.1:8b"
 
 def query_bastion(prompt: str) -> str:
     payload = {

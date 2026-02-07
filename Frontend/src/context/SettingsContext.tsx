@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 export interface Settings {
     bastionEndpoint: string;
@@ -19,19 +19,34 @@ interface SettingsContextType {
 const DEFAULT_SETTINGS: Settings = {
     bastionEndpoint: 'http://localhost:8000',
     ollamaEndpoint: 'http://localhost:11434',
-    bastionModel: 'deepseek-r1:8b',
+    bastionModel: 'llama3.1:8b',
     attackerModel: 'foundation-sec-4b:latest',
     shieldgemmaModel: 'shieldgemma:2b',
     alertThreshold: 'high',
-    autoHeal: true,
+    autoHeal: false,
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
+const migrateSettings = (saved: Partial<Settings>): Settings => {
+    const migrated = { ...DEFAULT_SETTINGS, ...saved };
+    // Fix stale model names from older localStorage
+    if (migrated.bastionModel.includes('deepseek')) {
+        migrated.bastionModel = DEFAULT_SETTINGS.bastionModel;
+    }
+    return migrated;
+};
+
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [settings, setSettings] = useState<Settings>(() => {
         const saved = localStorage.getItem('sentinel-settings');
-        return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            const migrated = migrateSettings(parsed);
+            localStorage.setItem('sentinel-settings', JSON.stringify(migrated));
+            return migrated;
+        }
+        return DEFAULT_SETTINGS;
     });
 
     const saveSettings = (newSettings: Settings) => {
@@ -63,7 +78,7 @@ export const useSettings = () => {
 export const getStoredSettings = (): Settings => {
     try {
         const saved = localStorage.getItem('sentinel-settings');
-        return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+        return saved ? migrateSettings(JSON.parse(saved)) : DEFAULT_SETTINGS;
     } catch {
         return DEFAULT_SETTINGS;
     }
