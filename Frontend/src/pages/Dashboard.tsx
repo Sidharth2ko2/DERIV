@@ -71,7 +71,10 @@ const Dashboard: React.FC = () => {
             setIsLoading(false);
         } catch (error) {
             console.error('Failed to fetch stats:', error);
-            setApiConnected(false);
+            // Don't mark offline during campaign — server is just busy with Ollama calls
+            if (!isRunningCampaign) {
+                setApiConnected(false);
+            }
             // Use fallback data
             setStats({
                 totalAttacks: 1247 + liveAttacks.length,
@@ -95,10 +98,10 @@ const Dashboard: React.FC = () => {
         }
     }, []);
 
-    // Sync auto-heal state to backend on mount
+    // Sync auto-heal state to backend whenever it changes
     useEffect(() => {
         api.setAutoHeal(settings.autoHeal).catch(() => {});
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [settings.autoHeal]);
 
     useEffect(() => {
         fetchStats();

@@ -163,12 +163,11 @@ Backend/
 ├── api_server.py           # Main API server — campaign runner, heal engine, all endpoints
 ├── shadow_RAG.py           # ChromaDB vector store with fake leaked Deriv documents
 ├── pyrit_attacker.py       # PyRIT red-team orchestrator (standalone reference)
-├── Scan_sentinel.py        # Giskard + ShieldGemma scanner (standalone reference)
 ├── bastion.py              # Original Bastion LLM proxy
 ├── bastion_client.py       # Bastion client utilities
 ├── heal_engine.py          # Vaccine injection system
 ├── orchestrator_graph.py   # LangGraph state machine
-├── deriv_attacks.json      # 16 Deriv-specific attack definitions
+├── deriv_attacks.json      # 6 Deriv-specific attack definitions
 ├── vaccine_guardrails.txt  # Runtime-generated vaccine rules
 └── requirements.txt
 

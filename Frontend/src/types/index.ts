@@ -27,7 +27,7 @@ export interface Attack {
 export interface AuditResult {
     id: string;
     timestamp: string;
-    scanType: 'giskard' | 'shieldgemma' | 'pyrit';
+    scanType: 'shieldgemma' | 'pyrit';
     totalTests: number;
     passed: number;
     failed: number;
